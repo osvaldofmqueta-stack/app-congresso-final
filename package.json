@@ -1,0 +1,42 @@
+{
+  "name": "app-congresso-final",
+  "version": "1.0.0",
+  "description": "CSA — Sistema de Gestão de Eventos para o Congresso de Alimento 2026 pela Universidade Rainha Njinga a Mbande",
+  "license": "MIT",
+  "author": {
+    "name": "Universidade Rainha Njinga a Mbande",
+    "email": "contato@csa.urnm.edu.ao"
+  },
+  "homepage": "https://github.com/osvaldofmqueta-stack/app-congresso-final#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/osvaldofmqueta-stack/app-congresso-final.git"
+  },
+  "bugs": {
+    "url": "https://github.com/osvaldofmqueta-stack/app-congresso-final/issues"
+  },
+  "keywords": [
+    "expo",
+    "react-native",
+    "mobile",
+    "event-management",
+    "congress",
+    "authentication",
+    "qr-code",
+    "biometric",
+    "angola",
+    "urnm",
+    "csa"
+  ],
+  "scripts": {
+    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
+    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+  },
+  "private": true,
+  "devDependencies": {
+    "typescript": "~5.9.2",
+    "prettier": "^3.8.1"
+  }
+}

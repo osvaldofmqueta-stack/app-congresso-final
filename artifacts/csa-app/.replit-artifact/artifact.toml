@@ -1,0 +1,27 @@
+kind = "mobile"
+previewPath = "/"
+title = "CSA — Sistema de Gestão de Eventos"
+version = "1.0.0"
+id = "artifacts/csa-app"
+router = "expo-domain"
+
+[[integratedSkills]]
+name = "expo"
+version = "1.0.0"
+
+[[services]]
+ensurePreviewReachable = "/status"
+localPort = 23065
+name = "expo"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/csa-app run dev"
+
+[services.env]
+PORT = "23065"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/csa-app", "run", "build"]
+run = ["pnpm", "--filter", "@workspace/csa-app", "run", "serve"]
