@@ -1,3 +1,55 @@
+# Configuração Supabase - CSA Congresso 2026
+# Project URL: https://xrpquuklhungyvctmpch.supabase.co
+
+# ============================================================================
+# PASSO 1: Obter credenciais no Supabase Dashboard
+# ============================================================================
+# 1. Acesse: https://app.supabase.com/project/xrpquuklhungyvctmpch
+# 2. Vá em: Project Settings → API
+# 3. Copie: Project URL e anon/public key
+
+# ============================================================================
+# PASSO 2: Variáveis de Ambiente (.env)
+# ============================================================================
+
+# Backend / API Server (.env)
+DATABASE_URL=postgresql://postgres:[YOUR-PASSWORD]@db.xrpquuklhungyvctmpch.supabase.co:5432/postgres
+SUPABASE_URL=https://xrpquuklhungyvctmpch.supabase.co
+SUPABASE_ANON_KEY=eyJhbG...  # Cole sua anon key aqui
+SUPABASE_SERVICE_ROLE_KEY=eyJhbG...  # Cole sua service_role key aqui (apenas backend!)
+
+# React Native App (.env)
+EXPO_PUBLIC_SUPABASE_URL=https://xrpquuklhungyvctmpch.supabase.co
+EXPO_PUBLIC_SUPABASE_ANON_KEY=eyJhbG...  # Cole sua anon key aqui
+
+# ============================================================================
+# PASSO 3: Configuração do arquivo lib/db/drizzle.config.ts
+# ============================================================================
+
+import { defineConfig } from "drizzle-kit";
+import path from "path";
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL não configurada");
+}
+
+export default defineConfig({
+  schema: path.join(__dirname, "./src/schema/index.ts"),
+  dialect: "postgresql",
+  dbCredentials: {
+    url: process.env.DATABASE_URL,
+  },
+  // Configuração para Supabase
+  out: "./drizzle",
+  breakpoints: true,
+  strict: true,
+  verbose: true,
+});
+
+# ============================================================================
+# PASSO 4: Schema atualizado para lib/db/src/schema/index.ts
+# ============================================================================
+
 import { pgTable, uuid, varchar, text, timestamp, boolean, decimal, integer, array, pgEnum } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -142,3 +194,80 @@ export const adminUsers = pgTable("admin_users", {
 export const insertAdminSchema = createInsertSchema(adminUsers).omit({ id: true, createdAt: true });
 export type InsertAdmin = z.infer<typeof insertAdminSchema>;
 export type AdminUser = typeof adminUsers.$inferSelect;
+
+# ============================================================================
+# PASSO 5: Cliente Supabase para React Native
+# ============================================================================
+
+// lib/supabase-client.ts
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL || 'https://xrpquuklhungyvctmpch.supabase.co';
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '';
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false,
+  },
+});
+
+# ============================================================================
+# PASSO 6: Comandos para sincronizar schema
+# ============================================================================
+
+# 1. Instalar dependências
+pnpm add @supabase/supabase-js
+
+# 2. Push do schema para Supabase
+cd lib/db
+pnpm drizzle-kit push
+
+# 3. Verificar tabelas criadas (no SQL Editor do Supabase)
+SELECT * FROM information_schema.tables WHERE table_schema = 'public';
+
+# ============================================================================
+# PREÇOS E CONFIGURAÇÕES
+# ============================================================================
+
+Tabela de Preços (Kwanza):
+- Docente/Investigador: 5.000 (URNM) | 7.000 (Externo)
+- Estudante: 3.000 (URNM) | 4.000 (Externo)  
+- Outros: 5.000 (URNM) | 10.000 (Externo)
+- Prelectores: 20.000 (Ambos)
+
+Eixos Temáticos:
+1. Ensino e Investigação aplicada ao sector agro-alimentar
+2. Contribuição sector agro na economia nacional
+3. Integração empresarial na criação de políticas de desenvolvimento
+
+Usuários Admin:
+- CEO: ceo@csa.com / ceo2026
+- Supervisor: supervisor@csa.com / super2026
+- Conselho: conselho@csa.com / conselho2026
+
+# ============================================================================
+# PASSO 7: Configurar RLS (Row Level Security) no Supabase Dashboard
+# ============================================================================
+
+# Políticas necessárias (já incluídas no supabase-schema.sql):
+
+1. Participants - SELECT: auth.uid() = id OR auth.uid() IN (admin_ids)
+2. Participants - UPDATE: auth.uid() = id OR auth.uid() IN (admin_ids)
+3. Program - SELECT: true (público)
+4. Program - ALL: auth.uid() IN (admin_ids)
+5. Submissions - SELECT: participant_id = auth.uid() OR auth.uid() IN (admin_ids)
+6. Notifications - SELECT: target_id = auth.uid() OR (target_id = 'admin' AND auth.uid() IN (admin_ids))
+
+# ============================================================================
+# PASSO 8: Verificar conexão
+# ============================================================================
+
+// Testar conexão
+const { data, error } = await supabase
+  .from('congress_config')
+  .select('*');
+
+if (error) console.error('Erro:', error);
+else console.log('Config:', data);

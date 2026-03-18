@@ -1,0 +1,6 @@
+Todos os perfis e credenciais de acesso
+Perfil	Email	Senha
+CEO — Director Geral	ceo@csa.com	ceo2026
+Supervisor de Eventos	supervisor@csa.com	super2026
+Conselho Científico	conselho@csa.com	conselho2026
+Participante	(email registado pelo participante)	(senha escolhida no registo)

@@ -2,7 +2,7 @@ import { defineConfig } from "drizzle-kit";
 import path from "path";
 
 if (!process.env.DATABASE_URL) {
-  throw new Error("DATABASE_URL, ensure the database is provisioned");
+  throw new Error("DATABASE_URL não configurada. Verifique seu arquivo .env");
 }
 
 export default defineConfig({
@@ -11,4 +11,8 @@ export default defineConfig({
   dbCredentials: {
     url: process.env.DATABASE_URL,
   },
+  out: "./drizzle",
+  breakpoints: true,
+  strict: true,
+  verbose: true,
 });
