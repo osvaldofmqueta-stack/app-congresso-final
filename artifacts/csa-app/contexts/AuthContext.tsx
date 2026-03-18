@@ -95,6 +95,8 @@ type AuthContextType = {
   updateAvatar: (uri: string) => Promise<void>;
   updateAdminPassword: (currentPwd: string, newPwd: string) => Promise<{ success: boolean; error?: string }>;
   storedCredentials: { email: string; password: string } | null;
+  biometricEnabled: boolean;
+  toggleBiometric: (enabled: boolean) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -102,6 +104,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 const STORAGE_KEY = "@csa_auth_user";
 const CREDENTIALS_KEY = "@csa_credentials";
 const ADMIN_PWD_OVERRIDES_KEY = "@csa_admin_pwd_overrides";
+const BIOMETRIC_KEY = "@csa_biometric_enabled";
 
 export const ADMIN_USERS: AuthUser[] = [
   { id: "admin-1", email: "ceo@csa.com", name: "CEO - Director Geral", role: "ceo" },
@@ -119,22 +122,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [storedCredentials, setStoredCredentials] = useState<{ email: string; password: string } | null>(null);
+  const [biometricEnabled, setBiometricEnabledState] = useState(false);
 
   useEffect(() => {
     const timeout = setTimeout(() => setIsLoading(false), 3000);
     Promise.all([
       AsyncStorage.getItem(STORAGE_KEY),
       AsyncStorage.getItem(CREDENTIALS_KEY),
+      AsyncStorage.getItem(BIOMETRIC_KEY),
     ])
-      .then(([stored, creds]) => {
+      .then(([stored, creds, bio]) => {
         try {
           if (stored) setUser(JSON.parse(stored));
           if (creds) setStoredCredentials(JSON.parse(creds));
+          if (bio !== null) setBiometricEnabledState(JSON.parse(bio));
         } catch {}
         setIsLoading(false);
       })
       .catch(() => setIsLoading(false))
       .finally(() => clearTimeout(timeout));
+  }, []);
+
+  const toggleBiometric = useCallback(async (enabled: boolean) => {
+    await AsyncStorage.setItem(BIOMETRIC_KEY, JSON.stringify(enabled));
+    setBiometricEnabledState(enabled);
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -219,6 +230,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateAvatar,
       updateAdminPassword,
       storedCredentials,
+      biometricEnabled,
+      toggleBiometric,
     }}>
       {children}
     </AuthContext.Provider>

@@ -25,7 +25,7 @@ const C = Colors.light;
 
 export default function LoginScreen() {
   const insets = useSafeAreaInsets();
-  const { login, loginWithParticipant, user, isLoading: authLoading, isAdmin, isConselho } = useAuth();
+  const { login, loginWithParticipant, user, isLoading: authLoading, isAdmin, isConselho, biometricEnabled } = useAuth();
   const { getParticipantByEmail } = useEvent();
   const { formatPeriodo } = useCongress();
 
@@ -300,7 +300,7 @@ export default function LoginScreen() {
             }
           </Pressable>
 
-          {biometricAvailable && (
+          {biometricAvailable && biometricEnabled && (
             <>
               <View style={styles.divRow}>
                 <View style={styles.divLine} />

@@ -1,13 +1,15 @@
 import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
+import * as LocalAuthentication from "expo-local-authentication";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   Image,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   View,
@@ -55,7 +57,7 @@ function getPermissions(role: string | null): PermItem[] {
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
-  const { user, updateAvatar, updateAdminPassword, permissions } = useAuth();
+  const { user, updateAvatar, updateAdminPassword, permissions, biometricEnabled, toggleBiometric } = useAuth();
   const { changeParticipantPassword, participants } = useEvent();
 
   const [currentPwd, setCurrentPwd] = useState("");
@@ -66,6 +68,39 @@ export default function ProfileScreen() {
   const [pwdSuccess, setPwdSuccess] = useState(false);
   const [pickingAvatar, setPickingAvatar] = useState(false);
   const [showPwdSection, setShowPwdSection] = useState(false);
+  const [biometricAvailable, setBiometricAvailable] = useState(false);
+  const [bioType, setBioType] = useState<"fingerprint" | "face" | "iris" | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const compatible = await LocalAuthentication.hasHardwareAsync();
+      const enrolled = await LocalAuthentication.isEnrolledAsync();
+      if (compatible && enrolled) {
+        setBiometricAvailable(true);
+        const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
+        if (types.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
+          setBioType("face");
+        } else if (types.includes(LocalAuthentication.AuthenticationType.IRIS)) {
+          setBioType("iris");
+        } else {
+          setBioType("fingerprint");
+        }
+      }
+    })();
+  }, []);
+
+  async function handleToggleBiometric(value: boolean) {
+    if (value) {
+      const result = await LocalAuthentication.authenticateAsync({
+        promptMessage: "Confirme a sua identidade para activar a biometria",
+        cancelLabel: "Cancelar",
+        fallbackLabel: "Usar senha",
+      });
+      if (!result.success) return;
+    }
+    await toggleBiometric(value);
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+  }
 
   const isAdmin = user?.role === "ceo" || user?.role === "supervisor";
   const isConselho = user?.role === "conselho";
@@ -221,6 +256,47 @@ export default function ProfileScreen() {
             <Text style={styles.sectionTitle}>Informações da Conta</Text>
             <InfoRow label="Email" value={user?.email ?? ""} />
             <InfoRow label="Nível de acesso" value={roleLabel} />
+          </View>
+        )}
+
+        {/* Biometric Authentication */}
+        {biometricAvailable && (
+          <View style={styles.section}>
+            <View style={styles.bioRow}>
+              <View style={styles.bioIconWrap}>
+                <Text style={styles.bioIcon}>
+                  {bioType === "face" ? "🪪" : bioType === "iris" ? "👁" : "🫆"}
+                </Text>
+              </View>
+              <View style={{ flex: 1, gap: 2 }}>
+                <Text style={styles.sectionTitle}>
+                  {bioType === "face"
+                    ? "Reconhecimento Facial"
+                    : bioType === "iris"
+                    ? "Reconhecimento de Íris"
+                    : "Impressão Digital"}
+                </Text>
+                <Text style={styles.bioSubtitle}>
+                  {biometricEnabled
+                    ? "Acesso biométrico activo no login"
+                    : "Inactive — ative para entrar sem senha"}
+                </Text>
+              </View>
+              <Switch
+                value={biometricEnabled}
+                onValueChange={handleToggleBiometric}
+                trackColor={{ false: "#E5E7EB", true: "#BBF7D0" }}
+                thumbColor={biometricEnabled ? C.tint : "#9CA3AF"}
+                ios_backgroundColor="#E5E7EB"
+              />
+            </View>
+            {biometricEnabled && (
+              <View style={styles.bioActiveBanner}>
+                <Text style={styles.bioActiveBannerText}>
+                  ✓ A biometria está activa. No próximo login poderá entrar sem digitar a senha.
+                </Text>
+              </View>
+            )}
           </View>
         )}
 
@@ -450,4 +526,24 @@ const styles = StyleSheet.create({
   permDot: { width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center" },
   permDotIcon: { fontSize: 11, color: "#fff", fontFamily: "Inter_700Bold" },
   permLabel: { fontSize: 13, fontFamily: "Inter_500Medium", color: C.text, flex: 1 },
+  bioRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+  bioIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: C.navy + "15",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  bioIcon: { fontSize: 24 },
+  bioSubtitle: { fontSize: 12, fontFamily: "Inter_400Regular", color: C.textSecondary },
+  bioActiveBanner: {
+    backgroundColor: "#F0FDF4",
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 4,
+    borderLeftWidth: 3,
+    borderLeftColor: "#22C55E",
+  },
+  bioActiveBannerText: { fontSize: 12, fontFamily: "Inter_500Medium", color: "#166534" },
 });
