@@ -15,6 +15,7 @@ export type ProgramItem = {
   tema: string;
   horaInicio: string;
   horaFim: string;
+  preletores: string[];
   status: ProgramItemStatus;
   concluidoEm?: string;
   ativadoEm?: string;
@@ -36,8 +37,8 @@ type ProgramContextType = {
   addDay: (data: string, titulo: string) => Promise<void>;
   updateDay: (id: string, data: string, titulo: string) => Promise<void>;
   deleteDay: (id: string) => Promise<void>;
-  addItem: (dayId: string, tema: string, horaInicio: string, horaFim: string) => Promise<void>;
-  updateItem: (dayId: string, itemId: string, tema: string, horaInicio: string, horaFim: string) => Promise<void>;
+  addItem: (dayId: string, tema: string, horaInicio: string, horaFim: string, preletores?: string[]) => Promise<void>;
+  updateItem: (dayId: string, itemId: string, tema: string, horaInicio: string, horaFim: string, preletores?: string[]) => Promise<void>;
   deleteItem: (dayId: string, itemId: string) => Promise<void>;
   markItemAtivo: (dayId: string, itemId: string) => Promise<void>;
   markItemConcluido: (dayId: string, itemId: string) => Promise<void>;
@@ -93,7 +94,7 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
     await saveDays(updated);
   }, [days, saveDays]);
 
-  const addItem = useCallback(async (dayId: string, tema: string, horaInicio: string, horaFim: string) => {
+  const addItem = useCallback(async (dayId: string, tema: string, horaInicio: string, horaFim: string, preletores: string[] = []) => {
     const id = await Crypto.randomUUID();
     const updated = days.map((d) => {
       if (d.id !== dayId) return d;
@@ -103,6 +104,7 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
         tema,
         horaInicio,
         horaFim,
+        preletores,
         status: "pendente",
         ordem,
       };
@@ -111,12 +113,12 @@ export function ProgramProvider({ children }: { children: React.ReactNode }) {
     await saveDays(updated);
   }, [days, saveDays]);
 
-  const updateItem = useCallback(async (dayId: string, itemId: string, tema: string, horaInicio: string, horaFim: string) => {
+  const updateItem = useCallback(async (dayId: string, itemId: string, tema: string, horaInicio: string, horaFim: string, preletores: string[] = []) => {
     const updated = days.map((d) => {
       if (d.id !== dayId) return d;
       return {
         ...d,
-        itens: d.itens.map((i) => i.id === itemId ? { ...i, tema, horaInicio, horaFim } : i),
+        itens: d.itens.map((i) => i.id === itemId ? { ...i, tema, horaInicio, horaFim, preletores } : i),
       };
     });
     await saveDays(updated);

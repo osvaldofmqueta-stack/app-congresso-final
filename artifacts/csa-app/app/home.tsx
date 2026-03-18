@@ -735,6 +735,11 @@ function ProgramaTab({ days }: { days: ProgramDay[] }) {
                           <Text style={styles.programItemHora}>
                             {item.horaInicio} – {item.horaFim}
                           </Text>
+                          {(item.preletores ?? []).length > 0 && (
+                            <Text style={styles.programItemPreletores} numberOfLines={1}>
+                              🎤 {(item.preletores ?? []).join(" · ")}
+                            </Text>
+                          )}
                         </View>
                         <View style={[
                           styles.programItemBadge,
@@ -872,6 +877,7 @@ const styles = StyleSheet.create({
   programItemTema: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: C.text, lineHeight: 20 },
   programItemTemaConcluido: { color: C.textMuted, textDecorationLine: "line-through" },
   programItemHora: { fontSize: 12, fontFamily: "Inter_400Regular", color: C.textSecondary, marginTop: 2 },
+  programItemPreletores: { fontSize: 11, fontFamily: "Inter_500Medium", color: C.tint, marginTop: 3 },
   programItemBadge: { backgroundColor: C.backgroundTertiary, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4, flexDirection: "row", alignItems: "center", gap: 4 },
   programItemBadgeAtivo: { backgroundColor: "#DCFCE7" },
   programItemBadgeConcluido: { backgroundColor: "#F3F4F6" },

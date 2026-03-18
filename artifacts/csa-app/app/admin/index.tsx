@@ -601,6 +601,8 @@ function AdminProgramaTab({
   const [itemTema, setItemTema] = useState("");
   const [itemInicio, setItemInicio] = useState("");
   const [itemFim, setItemFim] = useState("");
+  const [itemPreletores, setItemPreletores] = useState<string[]>([]);
+  const [itemNovoPreletor, setItemNovoPreletor] = useState("");
   const [saving, setSaving] = useState(false);
 
   function openAddDay() {
@@ -619,6 +621,8 @@ function AdminProgramaTab({
     setItemTema("");
     setItemInicio("");
     setItemFim("");
+    setItemPreletores([]);
+    setItemNovoPreletor("");
     setAddItemModal({ visible: true, dayId });
   }
 
@@ -626,7 +630,20 @@ function AdminProgramaTab({
     setItemTema(item.tema);
     setItemInicio(item.horaInicio);
     setItemFim(item.horaFim);
+    setItemPreletores(item.preletores ?? []);
+    setItemNovoPreletor("");
     setEditItemModal({ visible: true, dayId, item });
+  }
+
+  function addPreletor() {
+    const nome = itemNovoPreletor.trim();
+    if (!nome) return;
+    setItemPreletores((prev) => [...prev, nome]);
+    setItemNovoPreletor("");
+  }
+
+  function removePreletor(idx: number) {
+    setItemPreletores((prev) => prev.filter((_, i) => i !== idx));
   }
 
   function validateDate(d: string) {
@@ -668,7 +685,7 @@ function AdminProgramaTab({
     if (!validateTime(itemFim)) { Alert.alert("Erro", "Hora de fim inválida. Use HH:MM."); return; }
     setSaving(true);
     try {
-      await onAddItem(addItemModal.dayId, itemTema.trim(), itemInicio.trim(), itemFim.trim());
+      await onAddItem(addItemModal.dayId, itemTema.trim(), itemInicio.trim(), itemFim.trim(), itemPreletores);
       setAddItemModal({ visible: false, dayId: "" });
     } finally { setSaving(false); }
   }
@@ -680,7 +697,7 @@ function AdminProgramaTab({
     if (!validateTime(itemFim)) { Alert.alert("Erro", "Hora de fim inválida. Use HH:MM."); return; }
     setSaving(true);
     try {
-      await onUpdateItem(editItemModal.dayId, editItemModal.item.id, itemTema.trim(), itemInicio.trim(), itemFim.trim());
+      await onUpdateItem(editItemModal.dayId, editItemModal.item.id, itemTema.trim(), itemInicio.trim(), itemFim.trim(), itemPreletores);
       setEditItemModal({ visible: false, dayId: "", item: null });
     } finally { setSaving(false); }
   }
@@ -742,6 +759,11 @@ function AdminProgramaTab({
                   <View style={{ flex: 1, gap: 2 }}>
                     <Text style={styles.progItemTema} numberOfLines={2}>{item.tema}</Text>
                     <Text style={styles.progItemHora}>{item.horaInicio} – {item.horaFim}</Text>
+                    {(item.preletores ?? []).length > 0 && (
+                      <Text style={styles.progItemPreletores} numberOfLines={2}>
+                        🎤 {(item.preletores ?? []).join(" · ")}
+                      </Text>
+                    )}
                   </View>
                   <View style={[styles.progStatusBadge, { backgroundColor: statusBg[item.status] }]}>
                     {item.status === "ativo" && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#16A34A" }} />}
@@ -839,66 +861,86 @@ function AdminProgramaTab({
       {/* ADD ITEM MODAL */}
       <Modal visible={addItemModal.visible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Novo Item do Programa</Text>
-            <View style={{ gap: 10 }}>
-              <View style={{ gap: 4 }}>
-                <Text style={styles.progFormLabel}>Tema *</Text>
-                <TextInput style={[styles.progFormInput, { minHeight: 60 }]} placeholder="Descrição do tema ou actividade" placeholderTextColor={C.textMuted} value={itemTema} onChangeText={setItemTema} multiline />
+          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }} keyboardShouldPersistTaps="handled">
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Novo Item do Programa</Text>
+              <View style={{ gap: 10 }}>
+                <View style={{ gap: 4 }}>
+                  <Text style={styles.progFormLabel}>Tema *</Text>
+                  <TextInput style={[styles.progFormInput, { minHeight: 60 }]} placeholder="Descrição do tema ou actividade" placeholderTextColor={C.textMuted} value={itemTema} onChangeText={setItemTema} multiline />
+                </View>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={styles.progFormLabel}>Início (HH:MM) *</Text>
+                    <TextInput style={styles.progFormInput} placeholder="08:00" placeholderTextColor={C.textMuted} value={itemInicio} onChangeText={setItemInicio} keyboardType="numbers-and-punctuation" />
+                  </View>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={styles.progFormLabel}>Fim (HH:MM) *</Text>
+                    <TextInput style={styles.progFormInput} placeholder="09:30" placeholderTextColor={C.textMuted} value={itemFim} onChangeText={setItemFim} keyboardType="numbers-and-punctuation" />
+                  </View>
+                </View>
+                <PreletoresEditor
+                  preletores={itemPreletores}
+                  novoPreletor={itemNovoPreletor}
+                  onChangeNovo={setItemNovoPreletor}
+                  onAdd={addPreletor}
+                  onRemove={removePreletor}
+                  styles={styles}
+                />
               </View>
-              <View style={{ flexDirection: "row", gap: 10 }}>
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={styles.progFormLabel}>Início (HH:MM) *</Text>
-                  <TextInput style={styles.progFormInput} placeholder="08:00" placeholderTextColor={C.textMuted} value={itemInicio} onChangeText={setItemInicio} keyboardType="numbers-and-punctuation" />
-                </View>
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={styles.progFormLabel}>Fim (HH:MM) *</Text>
-                  <TextInput style={styles.progFormInput} placeholder="09:30" placeholderTextColor={C.textMuted} value={itemFim} onChangeText={setItemFim} keyboardType="numbers-and-punctuation" />
-                </View>
+              <View style={styles.modalBtns}>
+                <Pressable style={styles.modalBtnCancel} onPress={() => setAddItemModal({ visible: false, dayId: "" })}>
+                  <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+                </Pressable>
+                <Pressable style={[styles.modalBtnConfirm, saving && { opacity: 0.6 }]} onPress={handleSaveItem} disabled={saving}>
+                  <Text style={styles.modalBtnConfirmText}>{saving ? "A guardar..." : "Adicionar"}</Text>
+                </Pressable>
               </View>
             </View>
-            <View style={styles.modalBtns}>
-              <Pressable style={styles.modalBtnCancel} onPress={() => setAddItemModal({ visible: false, dayId: "" })}>
-                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
-              </Pressable>
-              <Pressable style={[styles.modalBtnConfirm, saving && { opacity: 0.6 }]} onPress={handleSaveItem} disabled={saving}>
-                <Text style={styles.modalBtnConfirmText}>{saving ? "A guardar..." : "Adicionar"}</Text>
-              </Pressable>
-            </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
 
       {/* EDIT ITEM MODAL */}
       <Modal visible={editItemModal.visible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Editar Item</Text>
-            <View style={{ gap: 10 }}>
-              <View style={{ gap: 4 }}>
-                <Text style={styles.progFormLabel}>Tema *</Text>
-                <TextInput style={[styles.progFormInput, { minHeight: 60 }]} placeholder="Descrição do tema ou actividade" placeholderTextColor={C.textMuted} value={itemTema} onChangeText={setItemTema} multiline />
+          <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: "center" }} keyboardShouldPersistTaps="handled">
+            <View style={styles.modalCard}>
+              <Text style={styles.modalTitle}>Editar Item</Text>
+              <View style={{ gap: 10 }}>
+                <View style={{ gap: 4 }}>
+                  <Text style={styles.progFormLabel}>Tema *</Text>
+                  <TextInput style={[styles.progFormInput, { minHeight: 60 }]} placeholder="Descrição do tema ou actividade" placeholderTextColor={C.textMuted} value={itemTema} onChangeText={setItemTema} multiline />
+                </View>
+                <View style={{ flexDirection: "row", gap: 10 }}>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={styles.progFormLabel}>Início (HH:MM) *</Text>
+                    <TextInput style={styles.progFormInput} placeholder="08:00" placeholderTextColor={C.textMuted} value={itemInicio} onChangeText={setItemInicio} keyboardType="numbers-and-punctuation" />
+                  </View>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={styles.progFormLabel}>Fim (HH:MM) *</Text>
+                    <TextInput style={styles.progFormInput} placeholder="09:30" placeholderTextColor={C.textMuted} value={itemFim} onChangeText={setItemFim} keyboardType="numbers-and-punctuation" />
+                  </View>
+                </View>
+                <PreletoresEditor
+                  preletores={itemPreletores}
+                  novoPreletor={itemNovoPreletor}
+                  onChangeNovo={setItemNovoPreletor}
+                  onAdd={addPreletor}
+                  onRemove={removePreletor}
+                  styles={styles}
+                />
               </View>
-              <View style={{ flexDirection: "row", gap: 10 }}>
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={styles.progFormLabel}>Início (HH:MM) *</Text>
-                  <TextInput style={styles.progFormInput} placeholder="08:00" placeholderTextColor={C.textMuted} value={itemInicio} onChangeText={setItemInicio} keyboardType="numbers-and-punctuation" />
-                </View>
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={styles.progFormLabel}>Fim (HH:MM) *</Text>
-                  <TextInput style={styles.progFormInput} placeholder="09:30" placeholderTextColor={C.textMuted} value={itemFim} onChangeText={setItemFim} keyboardType="numbers-and-punctuation" />
-                </View>
+              <View style={styles.modalBtns}>
+                <Pressable style={styles.modalBtnCancel} onPress={() => setEditItemModal({ visible: false, dayId: "", item: null })}>
+                  <Text style={styles.modalBtnCancelText}>Cancelar</Text>
+                </Pressable>
+                <Pressable style={[styles.modalBtnConfirm, saving && { opacity: 0.6 }]} onPress={handleUpdateItem} disabled={saving}>
+                  <Text style={styles.modalBtnConfirmText}>{saving ? "A guardar..." : "Guardar"}</Text>
+                </Pressable>
               </View>
             </View>
-            <View style={styles.modalBtns}>
-              <Pressable style={styles.modalBtnCancel} onPress={() => setEditItemModal({ visible: false, dayId: "", item: null })}>
-                <Text style={styles.modalBtnCancelText}>Cancelar</Text>
-              </Pressable>
-              <Pressable style={[styles.modalBtnConfirm, saving && { opacity: 0.6 }]} onPress={handleUpdateItem} disabled={saving}>
-                <Text style={styles.modalBtnConfirmText}>{saving ? "A guardar..." : "Guardar"}</Text>
-              </Pressable>
-            </View>
-          </View>
+          </ScrollView>
         </View>
       </Modal>
 
@@ -1351,6 +1393,47 @@ function AdminSubmissionCard({ submission: s, canApprove, onApprove, onReject, o
   );
 }
 
+function PreletoresEditor({ preletores, novoPreletor, onChangeNovo, onAdd, onRemove, styles }: {
+  preletores: string[];
+  novoPreletor: string;
+  onChangeNovo: (v: string) => void;
+  onAdd: () => void;
+  onRemove: (idx: number) => void;
+  styles: any;
+}) {
+  return (
+    <View style={{ gap: 8 }}>
+      <Text style={styles.progFormLabel}>Preletor(es)</Text>
+      <View style={styles.preEditRow}>
+        <TextInput
+          style={styles.preEditInput}
+          placeholder="Nome do preletor"
+          placeholderTextColor="#9CA3AF"
+          value={novoPreletor}
+          onChangeText={onChangeNovo}
+          onSubmitEditing={onAdd}
+          returnKeyType="done"
+        />
+        <Pressable style={styles.preEditAddBtn} onPress={onAdd}>
+          <Feather name="plus" size={18} color="#fff" />
+        </Pressable>
+      </View>
+      {preletores.length > 0 && (
+        <View style={styles.preTagList}>
+          {preletores.map((nome, idx) => (
+            <View key={idx} style={styles.preTag}>
+              <Text style={styles.preTagText}>{nome}</Text>
+              <Pressable style={styles.preTagRemove} onPress={() => onRemove(idx)}>
+                <Text style={styles.preTagRemoveText}>✕</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
 function EmptyState({ icon, title, sub }: { icon: string; title: string; sub: string }) {
   return (
     <View style={styles.emptyState}>
@@ -1552,6 +1635,15 @@ const styles = StyleSheet.create({
   progItemRow: { flexDirection: "row", alignItems: "center", paddingHorizontal: 16, paddingVertical: 12, gap: 10 },
   progItemTema: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: C.text, lineHeight: 18 },
   progItemHora: { fontSize: 11, fontFamily: "Inter_400Regular", color: C.textSecondary, marginTop: 1 },
+  progItemPreletores: { fontSize: 11, fontFamily: "Inter_500Medium", color: C.tint, marginTop: 2 },
+  preEditRow: { flexDirection: "row", gap: 6, alignItems: "center" },
+  preEditInput: { flex: 1, backgroundColor: C.inputBackground, borderRadius: 10, borderWidth: 1.5, borderColor: C.border, paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, fontFamily: "Inter_400Regular", color: C.text },
+  preEditAddBtn: { width: 36, height: 36, borderRadius: 10, backgroundColor: C.tint, alignItems: "center", justifyContent: "center" },
+  preTagList: { flexDirection: "row", flexWrap: "wrap", gap: 6, marginTop: 4 },
+  preTag: { flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#EEF2FF", borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4 },
+  preTagText: { fontSize: 12, fontFamily: "Inter_500Medium", color: C.navy },
+  preTagRemove: { width: 16, height: 16, borderRadius: 8, backgroundColor: C.navy + "30", alignItems: "center", justifyContent: "center" },
+  preTagRemoveText: { fontSize: 9, color: C.navy, fontFamily: "Inter_700Bold" },
   progStatusBadge: { borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, flexDirection: "row", alignItems: "center", gap: 4 },
   progStatusText: { fontSize: 10, fontFamily: "Inter_600SemiBold" },
   progItemActions: { flexDirection: "row", gap: 5 },
