@@ -9,16 +9,16 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/urnm-logo.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1A3A6E"
     },
     "ios": {
       "supportsTablet": false
     },
     "android": {},
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "favicon": "./assets/images/urnm-logo.png"
     },
     "plugins": [
       [

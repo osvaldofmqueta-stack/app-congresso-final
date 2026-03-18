@@ -79,6 +79,25 @@ artifacts/csa-app/
 | Outros            | 5.000  | 10.000  |
 | Prelectores       | 20.000 | 20.000  |
 
+## Splash Screen
+
+- Animated branded splash on app load: navy blue (#1A3A6E) background, CSA + URNM logos, congress name, animated fade-in/out
+- Web favicon: urnm-logo.png
+- Native splash: urnm-logo.png on #1A3A6E background
+
+## Welcome Modal
+
+- Shows after every successful login (admin or participant)
+- Displays user name, congress name, and congress dates period
+- Dismisses and navigates to the correct screen when tapped
+
+## Congress Dates Configuration (CEO only)
+
+- Context: `CongressContext.tsx` — stores `dataInicio`, `dataFim`, `localNome` in AsyncStorage
+- Default: 20 de março 2026 – 30 de abril 2026, URNM
+- CEO sees a "Configuração do Congresso" card in the Dashboard tab
+- Opens a modal with text fields (DD/MM/AAAA) to edit start date, end date, and venue name
+
 ## Data Flow
 
 - All data stored in AsyncStorage (no backend required for core functionality)

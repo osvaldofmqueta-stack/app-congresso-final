@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Animated,
   Image,
+  Modal,
   StyleSheet,
   Text,
   TextInput,
@@ -16,7 +17,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { KeyboardAwareScrollViewCompat } from "@/components/KeyboardAwareScrollViewCompat";
 import Colors from "@/constants/colors";
-import { useAuth } from "@/contexts/AuthContext";
+import { ADMIN_USERS, useAuth } from "@/contexts/AuthContext";
+import { useCongress } from "@/contexts/CongressContext";
 import { useEvent } from "@/contexts/EventContext";
 
 const C = Colors.light;
@@ -25,6 +27,7 @@ export default function LoginScreen() {
   const insets = useSafeAreaInsets();
   const { login, loginWithParticipant, user, isLoading: authLoading, isAdmin, isConselho } = useAuth();
   const { getParticipantByEmail } = useEvent();
+  const { formatPeriodo } = useCongress();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -33,6 +36,9 @@ export default function LoginScreen() {
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
   const [generalError, setGeneralError] = useState("");
+  const [welcomeModal, setWelcomeModal] = useState<{ visible: boolean; name: string; destination: string } | null>(null);
+  const welcomeScale = useRef(new Animated.Value(0.85)).current;
+  const welcomeOpacity = useRef(new Animated.Value(0)).current;
   const [biometricAvailable, setBiometricAvailable] = useState(false);
   const [biometricType, setBiometricType] = useState<"face" | "touch" | null>(null);
 
@@ -45,12 +51,35 @@ export default function LoginScreen() {
   const biometricScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
-    if (user) {
+    if (user && !welcomeModal) {
       if (isConselho) router.replace("/conselho");
       else if (isAdmin) router.replace("/admin");
       else router.replace("/home");
     }
-  }, [user, isAdmin, isConselho]);
+  }, [user, isAdmin, isConselho, welcomeModal]);
+
+  function showWelcome(name: string, destination: string) {
+    setWelcomeModal({ visible: true, name, destination });
+    Animated.parallel([
+      Animated.spring(welcomeScale, { toValue: 1, useNativeDriver: true, tension: 55, friction: 7 }),
+      Animated.timing(welcomeOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+    ]).start();
+  }
+
+  function dismissWelcome() {
+    Animated.parallel([
+      Animated.timing(welcomeScale, { toValue: 0.9, duration: 200, useNativeDriver: true }),
+      Animated.timing(welcomeOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+    ]).start(() => {
+      if (welcomeModal) {
+        const dest = welcomeModal.destination;
+        setWelcomeModal(null);
+        welcomeScale.setValue(0.85);
+        welcomeOpacity.setValue(0);
+        router.replace(dest as any);
+      }
+    });
+  }
 
   useEffect(() => {
     Animated.sequence([
@@ -111,6 +140,10 @@ export default function LoginScreen() {
     if (adminResult.success) {
       setLoading(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      const adminUser = ADMIN_USERS.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
+      const adminName = adminUser?.name ?? "Administrador";
+      const isConselhoUser = adminUser?.role === "conselho";
+      showWelcome(adminName, isConselhoUser ? "/conselho" : "/admin");
       return;
     }
 
@@ -131,6 +164,7 @@ export default function LoginScreen() {
       await loginWithParticipant(participant);
       setLoading(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      showWelcome(participant.nomeCompleto, "/home");
       return;
     }
 
@@ -305,6 +339,35 @@ export default function LoginScreen() {
           </Pressable>
         </Animated.View>
       </KeyboardAwareScrollViewCompat>
+
+      {/* Welcome Modal */}
+      <Modal
+        visible={!!welcomeModal?.visible}
+        transparent
+        animationType="none"
+        statusBarTranslucent
+      >
+        <View style={styles.welcomeOverlay}>
+          <Animated.View style={[styles.welcomeCard, { opacity: welcomeOpacity, transform: [{ scale: welcomeScale }] }]}>
+            <View style={styles.welcomeTop}>
+              <Image source={require("@/assets/images/urnm-logo.png")} style={styles.welcomeLogo} resizeMode="contain" />
+            </View>
+            <View style={styles.welcomeBody}>
+              <Text style={styles.welcomeGreeting}>Bem-vindo(a)!</Text>
+              <Text style={styles.welcomeName} numberOfLines={2}>{welcomeModal?.name}</Text>
+              <View style={styles.welcomeDivider} />
+              <Text style={styles.welcomeEvent}>Congresso de Alimento 2026</Text>
+              <Text style={styles.welcomePeriodo}>{formatPeriodo()}</Text>
+            </View>
+            <Pressable
+              style={({ pressed }) => [styles.welcomeBtn, pressed && { opacity: 0.85 }]}
+              onPress={dismissWelcome}
+            >
+              <Text style={styles.welcomeBtnText}>Entrar no Sistema</Text>
+            </Pressable>
+          </Animated.View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -354,4 +417,16 @@ const styles = StyleSheet.create({
   noAccountText: { fontSize: 13, fontFamily: "Inter_400Regular", color: C.textSecondary },
   registerBtn: { backgroundColor: C.navy, borderRadius: 14, paddingVertical: 15, paddingHorizontal: 28, alignSelf: "stretch", alignItems: "center", shadowColor: C.navy, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 4 },
   registerBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
+  welcomeOverlay: { flex: 1, backgroundColor: "rgba(15,30,60,0.7)", alignItems: "center", justifyContent: "center", paddingHorizontal: 28 },
+  welcomeCard: { backgroundColor: "#fff", borderRadius: 28, width: "100%", overflow: "hidden", shadowColor: "#000", shadowOffset: { width: 0, height: 16 }, shadowOpacity: 0.2, shadowRadius: 32, elevation: 16 },
+  welcomeTop: { backgroundColor: C.navy, paddingVertical: 28, alignItems: "center" },
+  welcomeLogo: { width: 80, height: 80 },
+  welcomeBody: { alignItems: "center", paddingHorizontal: 24, paddingTop: 22, paddingBottom: 18, gap: 6 },
+  welcomeGreeting: { fontSize: 26, fontFamily: "Inter_700Bold", color: C.tint, letterSpacing: -0.3 },
+  welcomeName: { fontSize: 17, fontFamily: "Inter_600SemiBold", color: C.text, textAlign: "center", marginTop: 2 },
+  welcomeDivider: { width: 50, height: 2, backgroundColor: C.tint, borderRadius: 2, marginVertical: 10 },
+  welcomeEvent: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: C.navy, textAlign: "center" },
+  welcomePeriodo: { fontSize: 12, fontFamily: "Inter_400Regular", color: C.textSecondary, textAlign: "center" },
+  welcomeBtn: { margin: 16, marginTop: 4, backgroundColor: C.tint, borderRadius: 14, height: 50, alignItems: "center", justifyContent: "center" },
+  welcomeBtnText: { fontSize: 15, fontFamily: "Inter_600SemiBold", color: "#fff" },
 });

@@ -33,6 +33,7 @@ import {
   StatusType,
   useEvent,
 } from "@/contexts/EventContext";
+import { useCongress } from "@/contexts/CongressContext";
 import { ProgramDay, ProgramItem, useProgram } from "@/contexts/ProgramContext";
 
 const C = Colors.light;
@@ -287,6 +288,7 @@ export default function AdminScreen() {
           pendingResets={pendingResets.length}
           pendingSubmissions={pendingSubmissions}
           participants={participants}
+          isCEO={isCEO}
           onGoParticipantes={(s) => { setActiveTab("participantes"); setFilterStatus(s); }}
           onGoPresenca={() => setActiveTab("presenca")}
           onGoSenhas={() => setActiveTab("senhas")}
@@ -944,11 +946,12 @@ function NavItem({ icon, label, active, badge, onPress }: { icon: string; label:
 // ── DASHBOARD TAB ──
 function DashboardTab({
   pendingCount, approvedCount, rejectedCount, presentCount, totalApproved,
-  pendingResets, pendingSubmissions, participants, onGoParticipantes, onGoPresenca, onGoSenhas, onGoApresentacoes,
+  pendingResets, pendingSubmissions, participants, isCEO, onGoParticipantes, onGoPresenca, onGoSenhas, onGoApresentacoes,
 }: {
   pendingCount: number; approvedCount: number; rejectedCount: number;
   presentCount: number; totalApproved: number; pendingResets: number;
   pendingSubmissions: number; participants: Participant[];
+  isCEO: boolean;
   onGoParticipantes: (s: StatusType | "all") => void;
   onGoPresenca: () => void; onGoSenhas: () => void; onGoApresentacoes: () => void;
 }) {
@@ -986,6 +989,141 @@ function DashboardTab({
         <QuickAction icon="key" label="Redefinições de Senha" badge={pendingResets} color="#F59E0B" onPress={onGoSenhas} />
         <QuickAction icon="qr-code" label="Marcar Presença" color={C.navy} onPress={onGoPresenca} isIonicons />
       </View>
+
+      {isCEO && <CongressConfigSection />}
+    </>
+  );
+}
+
+function CongressConfigSection() {
+  const { congressDates, updateCongressDates, formatPeriodo } = useCongress();
+  const [modalVisible, setModalVisible] = useState(false);
+  const [inicio, setInicio] = useState("");
+  const [fim, setFim] = useState("");
+  const [local, setLocal] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  function parseDateInput(input: string): string | null {
+    const trimmed = input.trim();
+    const ddmmyyyy = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+    const yyyymmdd = /^(\d{4})-(\d{2})-(\d{2})$/;
+    if (ddmmyyyy.test(trimmed)) {
+      const [, d, m, y] = trimmed.match(ddmmyyyy)!;
+      return `${y}-${m}-${d}`;
+    }
+    if (yyyymmdd.test(trimmed)) return trimmed;
+    return null;
+  }
+
+  function formatForDisplay(iso: string) {
+    const d = new Date(iso + "T12:00:00Z");
+    return d.toLocaleDateString("pt-PT", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+
+  function openModal() {
+    setInicio(formatForDisplay(congressDates.dataInicio));
+    setFim(formatForDisplay(congressDates.dataFim));
+    setLocal(congressDates.localNome);
+    setError("");
+    setModalVisible(true);
+  }
+
+  async function handleSave() {
+    const parsedInicio = parseDateInput(inicio);
+    const parsedFim = parseDateInput(fim);
+    if (!parsedInicio) { setError("Data de início inválida. Use DD/MM/AAAA."); return; }
+    if (!parsedFim) { setError("Data de fim inválida. Use DD/MM/AAAA."); return; }
+    if (parsedInicio >= parsedFim) { setError("A data de início deve ser anterior à data de fim."); return; }
+    setSaving(true);
+    await updateCongressDates({ dataInicio: parsedInicio, dataFim: parsedFim, localNome: local.trim() || congressDates.localNome });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setSaving(false);
+    setModalVisible(false);
+  }
+
+  return (
+    <>
+      <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Configuração do Congresso</Text>
+      <Pressable style={styles.congressCard} onPress={openModal}>
+        <View style={styles.congressCardIcon}>
+          <Feather name="calendar" size={22} color={C.tint} />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.congressCardLabel}>Período do Congresso</Text>
+          <Text style={styles.congressCardValue} numberOfLines={2}>{formatPeriodo()}</Text>
+          <Text style={styles.congressCardLocal} numberOfLines={1}>{congressDates.localNome}</Text>
+        </View>
+        <Feather name="edit-2" size={16} color={C.textMuted} />
+      </Pressable>
+
+      <Modal visible={modalVisible} transparent animationType="fade" statusBarTranslucent>
+        <View style={styles.congressModalOverlay}>
+          <View style={styles.congressModal}>
+            <View style={styles.congressModalHeader}>
+              <Feather name="calendar" size={20} color={C.tint} />
+              <Text style={styles.congressModalTitle}>Datas do Congresso</Text>
+            </View>
+
+            {!!error && (
+              <View style={styles.congressError}>
+                <Text style={styles.congressErrorText}>{error}</Text>
+              </View>
+            )}
+
+            <View style={styles.congressField}>
+              <Text style={styles.congressFieldLabel}>Data de Início (DD/MM/AAAA)</Text>
+              <TextInput
+                style={styles.congressInput}
+                value={inicio}
+                onChangeText={(t) => { setInicio(t); setError(""); }}
+                placeholder="20/03/2026"
+                placeholderTextColor={C.textMuted}
+                keyboardType="numbers-and-punctuation"
+              />
+            </View>
+
+            <View style={styles.congressField}>
+              <Text style={styles.congressFieldLabel}>Data de Fim (DD/MM/AAAA)</Text>
+              <TextInput
+                style={styles.congressInput}
+                value={fim}
+                onChangeText={(t) => { setFim(t); setError(""); }}
+                placeholder="30/04/2026"
+                placeholderTextColor={C.textMuted}
+                keyboardType="numbers-and-punctuation"
+              />
+            </View>
+
+            <View style={styles.congressField}>
+              <Text style={styles.congressFieldLabel}>Local</Text>
+              <TextInput
+                style={styles.congressInput}
+                value={local}
+                onChangeText={setLocal}
+                placeholder="Universidade Rainha Njinga a Mbande"
+                placeholderTextColor={C.textMuted}
+              />
+            </View>
+
+            <View style={styles.congressModalBtns}>
+              <Pressable
+                style={[styles.congressModalBtn, styles.congressModalBtnCancel]}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.congressModalBtnCancelText}>Cancelar</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.congressModalBtn, styles.congressModalBtnSave, saving && { opacity: 0.7 }]}
+                onPress={handleSave}
+                disabled={saving}
+              >
+                <Text style={styles.congressModalBtnSaveText}>{saving ? "A guardar…" : "Guardar"}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -1432,4 +1570,31 @@ const styles = StyleSheet.create({
   scannerCorner: { position: "absolute", width: 32, height: 32, borderColor: "#22C55E" },
   scannerCloseBtn: { backgroundColor: C.navy, paddingTop: 20, alignItems: "center", flexDirection: "row", justifyContent: "center", gap: 8 },
   scannerCloseBtnText: { fontSize: 16, fontFamily: "Inter_600SemiBold", color: "#fff" },
+
+  // Congress Config
+  congressCard: {
+    backgroundColor: "#fff", borderRadius: 16, padding: 16,
+    flexDirection: "row", alignItems: "center", gap: 14,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 3,
+    borderLeftWidth: 4, borderLeftColor: C.tint,
+  },
+  congressCardIcon: { width: 44, height: 44, borderRadius: 12, backgroundColor: "#EEF6F1", alignItems: "center", justifyContent: "center" },
+  congressCardLabel: { fontSize: 11, fontFamily: "Inter_500Medium", color: C.textSecondary, marginBottom: 2 },
+  congressCardValue: { fontSize: 13, fontFamily: "Inter_600SemiBold", color: C.text, lineHeight: 18 },
+  congressCardLocal: { fontSize: 11, fontFamily: "Inter_400Regular", color: C.textMuted, marginTop: 2 },
+  congressModalOverlay: { flex: 1, backgroundColor: "rgba(10,25,50,0.65)", alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
+  congressModal: { backgroundColor: "#fff", borderRadius: 24, padding: 22, width: "100%", gap: 14, shadowColor: "#000", shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 12 },
+  congressModalHeader: { flexDirection: "row", alignItems: "center", gap: 10 },
+  congressModalTitle: { fontSize: 17, fontFamily: "Inter_700Bold", color: C.text },
+  congressError: { backgroundColor: "#FEF2F2", borderRadius: 10, padding: 10, borderLeftWidth: 3, borderLeftColor: "#EF4444" },
+  congressErrorText: { fontSize: 12, fontFamily: "Inter_400Regular", color: "#991B1B" },
+  congressField: { gap: 6 },
+  congressFieldLabel: { fontSize: 12, fontFamily: "Inter_600SemiBold", color: C.text },
+  congressInput: { backgroundColor: "#F8FAFC", borderRadius: 12, borderWidth: 1.5, borderColor: "#E2E8F0", paddingHorizontal: 14, height: 48, fontSize: 14, fontFamily: "Inter_400Regular", color: C.text },
+  congressModalBtns: { flexDirection: "row", gap: 10, marginTop: 4 },
+  congressModalBtn: { flex: 1, height: 48, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  congressModalBtnCancel: { borderWidth: 1.5, borderColor: "#E5E7EB" },
+  congressModalBtnCancelText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: C.textSecondary },
+  congressModalBtnSave: { backgroundColor: C.tint },
+  congressModalBtnSaveText: { fontSize: 14, fontFamily: "Inter_600SemiBold", color: "#fff" },
 });
