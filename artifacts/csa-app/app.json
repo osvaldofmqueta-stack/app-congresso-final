@@ -23,7 +23,9 @@
       "permissions": [
         "INTERNET",
         "ACCESS_NETWORK_STATE",
-        "CAMERA"
+        "CAMERA",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
@@ -51,9 +53,9 @@
     },
     "extra": {
       "eas": {
-        "projectId": "550e8400-e29b-41d4-a716-446655440000"
+        "projectId": "d19afac1-cfec-4f51-9861-21a36c5e7faf"
       }
     },
-    "owner": "csa-congresso"
+    "owner": "osvaldo.queta"
   }
 }
