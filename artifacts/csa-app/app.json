@@ -1,30 +1,39 @@
 {
   "expo": {
-    "name": "CSA Login",
-    "slug": "csa-app",
+    "name": "CSA Congresso 2026",
+    "slug": "csa-congresso-2026",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/csa-logo.png",
     "scheme": "csa-app",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/urnm-logo.png",
+      "image": "./assets/images/csa-logo.png",
       "resizeMode": "contain",
       "backgroundColor": "#1A3A6E"
     },
     "ios": {
-      "supportsTablet": false
+      "supportsTablet": false,
+      "bundleIdentifier": "com.csa.congresso2026"
     },
-    "android": {},
+    "android": {
+      "package": "com.csa.congresso2026",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "CAMERA"
+      ]
+    },
     "web": {
-      "favicon": "./assets/images/urnm-logo.png"
+      "favicon": "./assets/images/csa-logo.png"
     },
     "plugins": [
       [
         "expo-router",
         {
-          "origin": "https://replit.com/"
+          "origin": "https://xrpquuklhungyvctmpch.supabase.co"
         }
       ],
       "expo-font",
@@ -39,6 +48,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "eas": {
+        "projectId": "550e8400-e29b-41d4-a716-446655440000"
+      }
+    },
+    "owner": "csa-congresso"
   }
 }
