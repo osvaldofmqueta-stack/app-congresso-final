@@ -46,15 +46,15 @@ function BrandedSplash({ onFinish }: { onFinish: () => void }) {
   useEffect(() => {
     Animated.sequence([
       Animated.parallel([
-        Animated.spring(logoScale, { toValue: 1, useNativeDriver: true, tension: 50, friction: 7 }),
-        Animated.timing(logoOpacity, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.spring(logoScale, { toValue: 1, useNativeDriver: true, tension: 40, friction: 8 }),
+        Animated.timing(logoOpacity, { toValue: 1, duration: 700, useNativeDriver: true }),
       ]),
       Animated.parallel([
-        Animated.timing(textOpacity, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.timing(lineWidth, { toValue: 1, duration: 500, useNativeDriver: true }),
+        Animated.timing(textOpacity, { toValue: 1, duration: 600, useNativeDriver: true }),
+        Animated.timing(lineWidth, { toValue: 1, duration: 700, useNativeDriver: true }),
       ]),
-      Animated.delay(900),
-      Animated.timing(bgOpacity, { toValue: 0, duration: 500, useNativeDriver: true }),
+      Animated.delay(2200),
+      Animated.timing(bgOpacity, { toValue: 0, duration: 700, useNativeDriver: true }),
     ]).start(() => onFinish());
   }, []);
 
